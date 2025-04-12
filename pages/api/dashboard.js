@@ -12,21 +12,31 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // Verify user is authenticated
-  const token = req.cookies.token;
-  console.log(`Auth token from cookies: ${token ? 'Present' : 'Not present'}`);
+  // Get token from Authorization header instead of cookies
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
   
-  const user = verifyToken(token);
+  console.log(`Auth token from header: ${token ? 'Present' : 'Not present'}`);
   
-  if (!user) {
-    console.error('Authentication failed: Invalid or missing token');
+  if (!token) {
+    console.error('Authentication failed: No token provided');
     return res.status(401).json({ message: 'Unauthorized' });
   }
-  
-  console.log(`User authenticated: ID=${user.id}, username=${user.username}`);
-  console.log('Processing dashboard data request');
-  
+
   try {
+    // Verify the token
+    const user = await verifyToken(token);
+    
+    if (!user || !user.id) {
+      console.error('Authentication failed: Invalid token');
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    console.log(`User authenticated: ID=${user.id}, username=${user.username}`);
+    console.log('Processing dashboard data request');
+    
     console.log('Fetching total files count...');
     // Get total files count
     const [totalFilesResult] = await db.query(

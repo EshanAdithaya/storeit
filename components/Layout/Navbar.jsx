@@ -12,13 +12,32 @@ const Navbar = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const token = localStorage.getItem('auth_token');
+        
+        if (!token) {
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+        
+        const response = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ token })
+        });
+        
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);
+        } else {
+          localStorage.removeItem('auth_token');
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth check error:', error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -29,9 +48,9 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST'
-      });
+      // Just remove the token from localStorage
+      localStorage.removeItem('auth_token');
+      setUser(null);
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);

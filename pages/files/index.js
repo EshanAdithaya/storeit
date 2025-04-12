@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import FileUpload from '../../components/FileManagement/FileUpload';
 import FileList from '../../components/FileManagement/FileList';
+import Link from 'next/link';
 
 export default function Files() {
+  const router = useRouter();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,6 +44,15 @@ export default function Files() {
     setLoading(true);
     
     try {
+      // Get token from localStorage
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        router.push('/login');
+        return;
+      }
+      
       let url = `/api/files?page=${page}`;
       
       if (debouncedSearchTerm) {
@@ -48,11 +60,21 @@ export default function Files() {
       }
       
       console.log(`Making API request to: ${url}`);
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       console.log(`API response received with status: ${response.status}`);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Authentication failed, redirecting to login');
+          localStorage.removeItem('auth_token');
+          router.push('/login');
+          return;
+        }
         console.error(`API error: ${response.status} - ${response.statusText}`);
         throw new Error('Failed to fetch files');
       }
@@ -84,14 +106,32 @@ export default function Files() {
   const handleDeleteFile = async (id) => {
     console.log(`Starting file deletion for ID: ${id}`);
     try {
+      // Get token from localStorage
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        router.push('/login');
+        return;
+      }
+      
       console.log(`Making DELETE request to: /api/files/${id}`);
       const response = await fetch(`/api/files/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       console.log(`API response received with status: ${response.status}`);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Authentication failed, redirecting to login');
+          localStorage.removeItem('auth_token');
+          router.push('/login');
+          return;
+        }
         console.error(`API error: ${response.status} - ${response.statusText}`);
         const data = await response.json();
         console.error('Error response:', data);
@@ -159,6 +199,7 @@ export default function Files() {
                   placeholder="Search files..."
                   value={searchTerm}
                   onChange={handleSearchChange}
+                  aria-label="Search files"
                 />
               </div>
             </div>
@@ -180,7 +221,12 @@ export default function Files() {
                   }} 
                 />
                 
-                {/* Pagination controls */}
+                {files.length === 0 && !loading && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No files found. {debouncedSearchTerm ? 'Try a different search term.' : 'Upload your first file to get started.'}</p>
+                  </div>
+                )}
+                
                 {totalPages > 1 && (
                   <div className="flex justify-center mt-6 gap-2">
                     <button
@@ -195,6 +241,7 @@ export default function Files() {
                           ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
                           : 'bg-blue-500 text-white hover:bg-blue-600'
                       }`}
+                      aria-label="Previous page"
                     >
                       Previous
                     </button>
@@ -217,6 +264,7 @@ export default function Files() {
                           ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
                           : 'bg-blue-500 text-white hover:bg-blue-600'
                       }`}
+                      aria-label="Next page"
                     >
                       Next
                     </button>

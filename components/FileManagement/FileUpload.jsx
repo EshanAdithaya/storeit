@@ -1,8 +1,10 @@
 // /components/FileManagement/FileUpload.jsx
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 const FileUpload = ({ onUploadComplete }) => {
+  const router = useRouter();
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -49,6 +51,15 @@ const FileUpload = ({ onUploadComplete }) => {
     console.log('FormData created with file appended');
     
     try {
+      // Get token from localStorage
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        router.push('/login');
+        return;
+      }
+      
       // Simulate progress (actual progress tracking would require custom implementation)
       console.log('Starting progress simulation');
       const progressInterval = setInterval(() => {
@@ -66,6 +77,9 @@ const FileUpload = ({ onUploadComplete }) => {
       console.log('Sending file upload request to API...');
       const response = await fetch('/api/files/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
       
@@ -76,6 +90,14 @@ const FileUpload = ({ onUploadComplete }) => {
       
       if (!response.ok) {
         console.error(`Upload failed with status: ${response.status}`);
+        
+        if (response.status === 401) {
+          console.error('Authentication failed, redirecting to login');
+          localStorage.removeItem('auth_token');
+          router.push('/login');
+          return;
+        }
+        
         const data = await response.json();
         throw new Error(data.message || 'Upload failed');
       }

@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState({
     totalFiles: 0,
     totalStorage: 0,
@@ -29,13 +31,32 @@ export default function Dashboard() {
     setLoading(true);
     
     try {
-      console.log('Making API request to: /api/dashboard');
-      const response = await fetch('/api/dashboard');
+      // Get token from localStorage
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        router.push('/login');
+        return;
+      }
+
+      console.log('Making API request to: /api/dashboard with auth token');
+      const response = await fetch('/api/dashboard', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       console.log(`API response received with status: ${response.status}`);
       
       if (!response.ok) {
-        console.error(`API error: ${response.status} - ${response.statusText}`);
+        if (response.status === 401) {
+          console.error('Authentication failed, redirecting to login');
+          localStorage.removeItem('auth_token');
+          router.push('/login');
+          return;
+        }
         throw new Error('Failed to fetch dashboard data');
       }
       
@@ -76,6 +97,7 @@ export default function Dashboard() {
   console.log(`Rendering Dashboard component with states - loading: ${loading}, error: ${error ? error : 'none'}`);
   console.log(`Dashboard stats: ${stats.totalFiles} files, ${formatFileSize(stats.totalStorage)} storage`);
 
+  // Rest of your Dashboard component JSX remains the same...
   return (
     <div>
       <Head>
@@ -111,6 +133,7 @@ export default function Dashboard() {
       ) : (
         <>
           <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Stats cards - unchanged */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="text-blue-500 mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,7 +165,9 @@ export default function Dashboard() {
             </div>
           </div>
           
+          {/* Recent files section - unchanged */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            {/* Rest of your dashboard content - unchanged */}
             <h2 className="text-xl font-bold mb-4">Recent Files</h2>
             
             {stats.recentFiles.length === 0 ? (
@@ -198,7 +223,9 @@ export default function Dashboard() {
             )}
           </div>
           
+          {/* Lower sections - unchanged */}
           <div className="grid md:grid-cols-2 gap-8">
+            {/* Quick upload section */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold mb-4">Quick Upload</h2>
               <p className="text-gray-600 mb-4">
@@ -221,6 +248,7 @@ export default function Dashboard() {
               </div>
             </div>
             
+            {/* API Integration section */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold mb-4">API Integration</h2>
               <p className="text-gray-600 mb-4">
