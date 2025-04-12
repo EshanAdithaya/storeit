@@ -20,12 +20,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // Verify user is authenticated
-  const token = req.cookies.token;
-  console.log(`Auth token from cookies: ${token ? 'Present' : 'Not present'}`);
+  // Get token from Authorization header
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : req.cookies.token; // Fallback to cookie if header not present
+  
+  console.log(`Auth token source: ${authHeader ? 'Authorization header' : (token ? 'Cookie' : 'Not present')}`);
+  console.log(`Auth token: ${token ? 'Present' : 'Not present'}`);
   
   try {
     // Using await with verifyToken since it now returns a Promise
+    console.log('Verifying auth token...');
     const user = await verifyToken(token);
     
     if (!user || !user.id) {
@@ -67,9 +73,21 @@ export default async function handler(req, res) {
     console.log(`File received for upload: ${fileToUpload.originalFilename}`);
     console.log(`File details: size=${fileToUpload.size} bytes, type=${fileToUpload.mimetype}`);
     
+    // Check any metadata or options from the form fields
+    if (fields.isPublic) {
+      console.log(`File visibility: Public (${fields.isPublic === 'true' ? 'true' : 'false'})`);
+    }
+    
+    if (fields.description) {
+      console.log(`File description provided: "${fields.description}"`);
+    }
+    
     // Save file to storage
     console.log(`Starting file save process for user ${user.id}...`);
-    const savedFile = await saveFile(fileToUpload, user.id);
+    const savedFile = await saveFile(fileToUpload, user.id, {
+      isPublic: fields.isPublic === 'true',
+      description: fields.description
+    });
     console.log(`File saved successfully: ID=${savedFile.id}, path=${savedFile.path}`);
 
     console.log('File upload process completed successfully');
@@ -84,12 +102,28 @@ export default async function handler(req, res) {
     
     if (error.code === 'LIMIT_FILE_SIZE') {
       console.error('File size limit exceeded error');
-      return res.status(413).json({ message: 'File is too large' });
+      return res.status(413).json({ 
+        message: 'File is too large',
+        maxSize: '100MB'
+      });
     }
     
     if (error.httpCode === 413) {
       console.error('Request entity too large error');
-      return res.status(413).json({ message: 'File is too large' });
+      return res.status(413).json({ 
+        message: 'File is too large',
+        maxSize: '100MB'
+      });
+    }
+    
+    if (error.code === 'ENOENT') {
+      console.error('File system error: Could not find or access the file');
+      return res.status(500).json({ message: 'Storage system error' });
+    }
+    
+    if (error.code === 'EACCES') {
+      console.error('File system error: Permission denied');
+      return res.status(500).json({ message: 'Storage permission error' });
     }
     
     console.error('Unhandled file upload error');

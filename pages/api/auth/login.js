@@ -51,22 +51,18 @@ export default async function handler(req, res) {
 
     // Generate JWT token
     console.log(`Generating JWT token for user ID: ${user.id}`);
-    const token = generateToken(user);
+    const token = await generateToken(user);
     console.log('JWT token generated successfully');
 
-    // Set HTTP-only cookie with token
-    console.log('Setting HTTP-only cookie with token');
-    res.setHeader('Set-Cookie', `token=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${60 * 60 * 24}`);
-    console.log('Cookie set successfully');
-
-    // Return user info without password
+    // Return user info without password and include token
     const { password: _, ...userWithoutPassword } = user;
-    console.log('Preparing response with user data (without password)');
+    console.log('Preparing response with user data (without password) and token');
     
     console.log(`Login successful for user: ${username}`);
     return res.status(200).json({
       message: 'Login successful',
       user: userWithoutPassword,
+      token: token // Return token in response
     });
   } catch (error) {
     console.error('Login process failed with error:', error);
