@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         WHERE (f.user_id = ? OR fs.user_id = ? OR f.public = 1)
       `;
       
-      const countQuery = `
+      let countQuery = `
         SELECT COUNT(DISTINCT f.id) as total
         FROM files f
         LEFT JOIN file_shares fs ON f.id = fs.file_id
