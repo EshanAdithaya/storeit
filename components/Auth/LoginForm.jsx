@@ -1,6 +1,6 @@
 // /components/Auth/LoginForm.jsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 const LoginForm = () => {
@@ -12,8 +12,38 @@ const LoginForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Log when component mounts
+  useEffect(() => {
+    console.log('LoginForm component mounted');
+    
+    // Log router events
+    const handleRouteChangeStart = (url) => {
+      console.log(`Navigation starting to: ${url}`);
+    };
+    
+    const handleRouteChangeComplete = (url) => {
+      console.log(`Navigation completed to: ${url}`);
+    };
+    
+    const handleRouteChangeError = (err, url) => {
+      console.error(`Navigation to ${url} failed:`, err);
+    };
+    
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+    router.events.on('routeChangeError', handleRouteChangeError);
+    
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+      router.events.off('routeChangeError', handleRouteChangeError);
+      console.log('LoginForm component unmounted');
+    };
+  }, [router]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Form field "${name}" changed to: ${value}`);
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -22,10 +52,13 @@ const LoginForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Login form submitted with data:', formData);
     setError('');
     setLoading(true);
+    console.log('Loading state set to true');
 
     try {
+      console.log('Sending login request to API...');
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -35,16 +68,21 @@ const LoginForm = () => {
       });
 
       const data = await response.json();
+      console.log('API response received:', data);
 
       if (!response.ok) {
+        console.error('Login failed with status:', response.status);
         throw new Error(data.message || 'Login failed');
       }
 
+      console.log('Login successful, redirecting to dashboard...');
       // Redirect to dashboard on successful login
       router.push('/dashboard');
     } catch (error) {
+      console.error('Login error:', error.message);
       setError(error.message);
     } finally {
+      console.log('Loading state set to false');
       setLoading(false);
     }
   };
