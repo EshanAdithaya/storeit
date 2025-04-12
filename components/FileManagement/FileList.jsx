@@ -71,8 +71,8 @@ const FileList = ({ files, onDeleteFile }) => {
                   </div>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900">
-                      <Link href={`/files/${file.id}`}>
-                        <a>{file.original_filename}</a>
+                      <Link href={`/files/${file.id}`} className="hover:underline">
+                        {file.original_filename}
                       </Link>
                     </div>
                     <div className="text-sm text-gray-500">

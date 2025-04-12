@@ -43,17 +43,17 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-8">
-            <Link href="/">
-              <a className="text-xl font-bold">FileServer</a>
+            <Link href="/" className="text-xl font-bold">
+              FileServer
             </Link>
             
             {!isLoading && user && (
               <div className="hidden md:flex space-x-4">
-                <Link href="/dashboard">
-                  <a className="hover:text-gray-300">Dashboard</a>
+                <Link href="/dashboard" className="hover:text-gray-300">
+                  Dashboard
                 </Link>
-                <Link href="/files">
-                  <a className="hover:text-gray-300">My Files</a>
+                <Link href="/files" className="hover:text-gray-300">
+                  My Files
                 </Link>
               </div>
             )}
@@ -74,15 +74,11 @@ const Navbar = () => {
                   </div>
                 ) : (
                   <div className="flex space-x-2">
-                    <Link href="/login">
-                      <a className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">
-                        Login
-                      </a>
+                    <Link href="/login" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">
+                      Login
                     </Link>
-                    <Link href="/register">
-                      <a className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">
-                        Register
-                      </a>
+                    <Link href="/register" className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">
+                      Register
                     </Link>
                   </div>
                 )}

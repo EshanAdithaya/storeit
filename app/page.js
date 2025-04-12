@@ -1,17 +1,8 @@
-// /pages/index.js
-
-import Head from 'next/head';
-import Link from 'next/link';
+// app/page.js
 
 export default function Home() {
   return (
     <div>
-      <Head>
-        <title>FileServer - Local File Storage and Sharing</title>
-        <meta name="description" content="Store and share your files securely with FileServer" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Welcome to FileServer</h1>
@@ -26,11 +17,9 @@ export default function Home() {
             <p className="text-gray-600 mb-6">
               Upload and manage your files with a clean, intuitive interface. Your data stays on your server, with no external API calls.
             </p>
-            <Link href="/register">
-              <a className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
-                Get Started
-              </a>
-            </Link>
+            <a href="/register" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+              Get Started
+            </a>
           </div>
 
           <div className="bg-white shadow-md rounded-lg p-8">
@@ -38,11 +27,9 @@ export default function Home() {
             <p className="text-gray-600 mb-6">
               Easily share files with other users. Grant read, write, or admin access to manage permissions securely.
             </p>
-            <Link href="/login">
-              <a className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">
-                Login Now
-              </a>
-            </Link>
+            <a href="/login" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">
+              Login Now
+            </a>
           </div>
         </div>
 
