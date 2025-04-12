@@ -1,4 +1,3 @@
-// next.config.mjs
 const nextConfig = {
     reactStrictMode: true,
     output: 'standalone',
@@ -7,6 +6,7 @@ const nextConfig = {
     },
     experimental: {
       serverComponentsExternalPackages: [],
+      runtime: 'nodejs', // Added to ensure API routes run in Node.js runtime
     },
   };
   

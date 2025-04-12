@@ -24,16 +24,17 @@ export default async function handler(req, res) {
   const token = req.cookies.token;
   console.log(`Auth token from cookies: ${token ? 'Present' : 'Not present'}`);
   
-  const user = verifyToken(token);
-  
-  if (!user) {
-    console.error('Authentication failed: Invalid or missing token');
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-  
-  console.log(`User authenticated: ID=${user.id}, username=${user.username}`);
-
   try {
+    // Using await with verifyToken since it now returns a Promise
+    const user = await verifyToken(token);
+    
+    if (!user || !user.id) {
+      console.error('Authentication failed: Invalid or missing token');
+      return res.status(401).json({ message: 'Authentication required. Please log in again.' });
+    }
+    
+    console.log(`User authenticated: ID=${user.id}, username=${user.username}`);
+
     // Parse form with formidable
     console.log('Initializing formidable for file parsing');
     const form = formidable({
