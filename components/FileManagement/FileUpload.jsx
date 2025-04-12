@@ -1,6 +1,6 @@
 // /components/FileManagement/FileUpload.jsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const FileUpload = ({ onUploadComplete }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -8,66 +8,96 @@ const FileUpload = ({ onUploadComplete }) => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
 
+  // Log when component mounts
+  useEffect(() => {
+    console.log('FileUpload component mounted');
+    return () => {
+      console.log('FileUpload component unmounting');
+    };
+  }, []);
+
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      console.log(`File selected: ${file.name}, size: ${(file.size / 1024).toFixed(2)} KB, type: ${file.type}`);
+      setSelectedFile(file);
       setError('');
+    } else {
+      console.log('File selection cancelled or no file selected');
     }
   };
 
   const handleUpload = async (e) => {
     e.preventDefault();
+    console.log('Upload form submitted');
     
     if (!selectedFile) {
+      console.error('Upload attempted with no file selected');
       setError('Please select a file to upload');
       return;
     }
     
+    console.log(`Starting upload of file: ${selectedFile.name}`);
     setUploading(true);
+    console.log('Upload loading state set to true');
     setProgress(0);
+    console.log('Progress reset to 0%');
     setError('');
     
     const formData = new FormData();
     formData.append('file', selectedFile);
+    console.log('FormData created with file appended');
     
     try {
       // Simulate progress (actual progress tracking would require custom implementation)
+      console.log('Starting progress simulation');
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          if (prev >= 90) {
+          const newProgress = prev >= 90 ? 90 : prev + 10;
+          console.log(`Upload progress updated to ${newProgress}%`);
+          if (newProgress >= 90) {
+            console.log('Progress simulation reached 90%, clearing interval');
             clearInterval(progressInterval);
-            return 90;
           }
-          return prev + 10;
+          return newProgress;
         });
       }, 300);
       
+      console.log('Sending file upload request to API...');
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData
       });
       
       clearInterval(progressInterval);
+      console.log('Progress interval cleared');
       setProgress(100);
+      console.log('Upload progress set to 100%');
       
       if (!response.ok) {
+        console.error(`Upload failed with status: ${response.status}`);
         const data = await response.json();
         throw new Error(data.message || 'Upload failed');
       }
       
       const data = await response.json();
+      console.log('Upload successful, received response:', data);
       
       // Reset form
+      console.log('Resetting form state after successful upload');
       setSelectedFile(null);
       setProgress(0);
       
       // Notify parent component
       if (onUploadComplete) {
+        console.log('Calling onUploadComplete callback with uploaded file data');
         onUploadComplete(data.file);
       }
     } catch (error) {
+      console.error('Upload error:', error.message);
       setError(error.message);
     } finally {
+      console.log('Upload process completed, setting uploading state to false');
       setUploading(false);
     }
   };
@@ -118,6 +148,15 @@ const FileUpload = ({ onUploadComplete }) => {
           type="submit"
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
           disabled={uploading || !selectedFile}
+          onClick={() => {
+            if (!selectedFile) {
+              console.log('Upload button clicked but no file selected');
+            } else if (uploading) {
+              console.log('Upload button clicked but upload already in progress');
+            } else {
+              console.log('Upload button clicked with file selected');
+            }
+          }}
         >
           {uploading ? 'Uploading...' : 'Upload File'}
         </button>
