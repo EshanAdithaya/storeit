@@ -1,6 +1,6 @@
 // /components/Auth/RegisterForm.jsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 const RegisterForm = () => {
@@ -14,8 +14,38 @@ const RegisterForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Log when component mounts
+  useEffect(() => {
+    console.log('RegisterForm component mounted');
+    
+    // Log router events
+    const handleRouteChangeStart = (url) => {
+      console.log(`Navigation starting to: ${url}`);
+    };
+    
+    const handleRouteChangeComplete = (url) => {
+      console.log(`Navigation completed to: ${url}`);
+    };
+    
+    const handleRouteChangeError = (err, url) => {
+      console.error(`Navigation to ${url} failed:`, err);
+    };
+    
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+    router.events.on('routeChangeError', handleRouteChangeError);
+    
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+      router.events.off('routeChangeError', handleRouteChangeError);
+      console.log('RegisterForm component unmounted');
+    };
+  }, [router]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Form field "${name}" changed to: ${value}`);
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -24,17 +54,21 @@ const RegisterForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Register form submitted with data:', formData);
     setError('');
     
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
+      console.error('Validation error: Passwords do not match');
       setError('Passwords do not match');
       return;
     }
     
     setLoading(true);
+    console.log('Loading state set to true');
 
     try {
+      console.log('Sending registration request to API...');
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -48,16 +82,21 @@ const RegisterForm = () => {
       });
 
       const data = await response.json();
+      console.log('API response received:', data);
 
       if (!response.ok) {
+        console.error('Registration failed with status:', response.status);
         throw new Error(data.message || 'Registration failed');
       }
 
+      console.log('Registration successful, redirecting to login page...');
       // Redirect to login page
       router.push('/login');
     } catch (error) {
+      console.error('Registration error:', error.message);
       setError(error.message);
     } finally {
+      console.log('Loading state set to false');
       setLoading(false);
     }
   };

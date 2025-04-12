@@ -1,6 +1,6 @@
 // /components/FileManagement/FileActions.jsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const FileActions = ({ file, onUpdateFile, onShareFile, onRemoveShare }) => {
   const [isPublic, setIsPublic] = useState(file?.public || false);
@@ -11,79 +11,124 @@ const FileActions = ({ file, onUpdateFile, onShareFile, onRemoveShare }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
+  
+  // Log when component mounts and when file changes
+  useEffect(() => {
+    console.log('FileActions component mounted/updated with file:', file);
+    return () => {
+      console.log('FileActions component unmounting');
+    };
+  }, [file]);
 
   const handleTogglePublic = async () => {
+    console.log(`Toggling file visibility from ${isPublic ? 'public' : 'private'} to ${!isPublic ? 'public' : 'private'}`);
     setSaving(true);
+    console.log('Setting saving state to true');
     setError('');
     
     try {
+      console.log('Calling onUpdateFile to update file visibility');
       await onUpdateFile({
         public: !isPublic
       });
       
+      console.log(`File visibility successfully updated to ${!isPublic ? 'public' : 'private'}`);
       setIsPublic(!isPublic);
     } catch (error) {
+      console.error('Error toggling file visibility:', error);
       setError(error.message || 'Failed to update file');
     } finally {
+      console.log('Setting saving state to false');
       setSaving(false);
     }
   };
 
   const handleUpdateFilename = async (e) => {
     e.preventDefault();
+    console.log(`Updating filename to: ${filename}`);
     setSaving(true);
+    console.log('Setting saving state to true');
     setError('');
     
     try {
+      console.log('Calling onUpdateFile to update filename');
       await onUpdateFile({
         original_filename: filename
       });
+      console.log('Filename successfully updated');
     } catch (error) {
+      console.error('Error updating filename:', error);
       setError(error.message || 'Failed to update filename');
     } finally {
+      console.log('Setting saving state to false');
       setSaving(false);
     }
   };
 
   const handleSearchUsers = async (e) => {
     const searchTerm = e.target.value;
+    console.log(`Searching users with term: ${searchTerm}`);
     setShareEmail(searchTerm);
     
     if (searchTerm.length < 2) {
+      console.log('Search term too short, clearing results');
       setSearchResults([]);
       return;
     }
     
     setSearchLoading(true);
+    console.log('Setting search loading state to true');
     
     try {
-      const response = await fetch(`/api/users?search=${encodeURIComponent(searchTerm)}`);
+      const apiUrl = `/api/users?search=${encodeURIComponent(searchTerm)}`;
+      console.log(`Fetching users from API: ${apiUrl}`);
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
+        console.error(`API returned error status: ${response.status}`);
         throw new Error('Failed to search users');
       }
       
       const data = await response.json();
+      console.log('User search results received:', data);
       setSearchResults(data.users || []);
+      console.log(`Found ${data.users?.length || 0} users matching search term`);
     } catch (error) {
       console.error('Error searching users:', error);
     } finally {
+      console.log('Setting search loading state to false');
       setSearchLoading(false);
     }
   };
 
   const handleShareFile = async (userId) => {
+    console.log(`Sharing file with user ID ${userId} with ${accessLevel} access`);
     try {
+      console.log('Calling onShareFile with share details');
       await onShareFile({
         userId,
         accessLevel
       });
       
+      console.log('File shared successfully');
       // Clear form
       setShareEmail('');
       setSearchResults([]);
+      console.log('Share form cleared');
     } catch (error) {
+      console.error('Error sharing file:', error);
       setError(error.message || 'Failed to share file');
+    }
+  };
+  
+  const handleRemoveShare = (userId) => {
+    console.log(`Removing share for user ID ${userId}`);
+    try {
+      onRemoveShare(userId);
+      console.log('Share removed successfully');
+    } catch (error) {
+      console.error('Error removing share:', error);
+      setError(error.message || 'Failed to remove share');
     }
   };
 
@@ -105,7 +150,10 @@ const FileActions = ({ file, onUpdateFile, onShareFile, onRemoveShare }) => {
             <input
               type="text"
               value={filename}
-              onChange={(e) => setFilename(e.target.value)}
+              onChange={(e) => {
+                console.log(`Filename input changed to: ${e.target.value}`);
+                setFilename(e.target.value);
+              }}
               className="flex-grow shadow appearance-none border rounded-l py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
@@ -184,7 +232,10 @@ const FileActions = ({ file, onUpdateFile, onShareFile, onRemoveShare }) => {
             
             <select
               value={accessLevel}
-              onChange={(e) => setAccessLevel(e.target.value)}
+              onChange={(e) => {
+                console.log(`Access level changed to: ${e.target.value}`);
+                setAccessLevel(e.target.value);
+              }}
               className="shadow border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             >
               <option value="read">Read</option>
@@ -206,7 +257,7 @@ const FileActions = ({ file, onUpdateFile, onShareFile, onRemoveShare }) => {
                     <div className="text-xs text-gray-500 capitalize">{share.access_level} access</div>
                   </div>
                   <button
-                    onClick={() => onRemoveShare(share.user_id)}
+                    onClick={() => handleRemoveShare(share.user_id)}
                     className="text-red-600 text-sm hover:text-red-800"
                   >
                     Remove

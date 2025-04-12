@@ -1,17 +1,28 @@
 // /components/FileManagement/FileList.jsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const FileList = ({ files, onDeleteFile }) => {
   const [expandedFile, setExpandedFile] = useState(null);
 
+  // Log when component mounts or files change
+  useEffect(() => {
+    console.log('FileList component mounted/updated');
+    console.log('Files received:', files);
+    return () => {
+      console.log('FileList component unmounting');
+    };
+  }, [files]);
+
   const formatDate = (dateString) => {
+    console.log(`Formatting date: ${dateString}`);
     const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   const formatFileSize = (bytes) => {
+    console.log(`Formatting file size: ${bytes} bytes`);
     if (bytes < 1024) return bytes + ' B';
     else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
     else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
@@ -19,20 +30,32 @@ const FileList = ({ files, onDeleteFile }) => {
   };
 
   const toggleExpand = (id) => {
-    setExpandedFile(expandedFile === id ? null : id);
+    console.log(`Toggling expanded state for file ID: ${id}`);
+    const newExpandedState = expandedFile === id ? null : id;
+    console.log(`New expanded state: ${newExpandedState}`);
+    setExpandedFile(newExpandedState);
   };
 
   const handleDelete = async (id) => {
+    console.log(`Delete requested for file ID: ${id}`);
     if (window.confirm('Are you sure you want to delete this file?')) {
+      console.log(`Delete confirmed for file ID: ${id}`);
       try {
+        console.log(`Calling onDeleteFile for file ID: ${id}`);
         await onDeleteFile(id);
+        console.log(`File with ID: ${id} successfully deleted`);
       } catch (error) {
-        console.error('Error deleting file:', error);
+        console.error(`Error deleting file ID: ${id}`, error);
+        alert(`Failed to delete file: ${error.message}`);
       }
+    } else {
+      console.log(`Delete cancelled for file ID: ${id}`);
     }
   };
 
+  // Log when no files are available
   if (!files || files.length === 0) {
+    console.log('No files found to display');
     return (
       <div className="bg-gray-50 p-8 rounded-lg text-center">
         <p className="text-gray-500">No files found</p>
@@ -40,6 +63,7 @@ const FileList = ({ files, onDeleteFile }) => {
     );
   }
 
+  console.log(`Rendering file list with ${files.length} files`);
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full bg-white rounded-lg overflow-hidden">
@@ -71,7 +95,9 @@ const FileList = ({ files, onDeleteFile }) => {
                   </div>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900">
-                      <Link href={`/files/${file.id}`} className="hover:underline">
+                      <Link href={`/files/${file.id}`} 
+                        onClick={() => console.log(`Navigating to file details page for ID: ${file.id}`)}
+                        className="hover:underline">
                         {file.original_filename}
                       </Link>
                     </div>
@@ -94,6 +120,7 @@ const FileList = ({ files, onDeleteFile }) => {
                     className="text-blue-600 hover:text-blue-900"
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => console.log(`Downloading file ID: ${file.id}`)}
                   >
                     Download
                   </a>
