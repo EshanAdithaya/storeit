@@ -14,38 +14,65 @@ export default function FileDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
+  console.log(`FileDetails component rendered for file ID: ${id || 'not available yet'}`);
+  
   useEffect(() => {
+    console.log(`useEffect triggered with file ID: ${id}`);
     if (id) {
+      console.log(`File ID available, fetching file details for ID: ${id}`);
       fetchFileDetails();
+    } else {
+      console.log('Waiting for file ID from router...');
     }
+    
+    return () => {
+      console.log(`FileDetails component for file ID: ${id} is unmounting`);
+    };
   }, [id]);
   
   const fetchFileDetails = async () => {
+    console.log(`Starting file details fetch for ID: ${id}`);
     setLoading(true);
+    console.log('Setting loading state to true');
     
     try {
+      console.log(`Making API request to: /api/files/${id}`);
       const response = await fetch(`/api/files/${id}`);
       
+      console.log(`API response received with status: ${response.status}`);
+      
       if (!response.ok) {
+        console.error(`API error: ${response.status} - ${response.statusText}`);
         throw new Error('Failed to fetch file details');
       }
       
+      console.log('Parsing API response JSON');
       const data = await response.json();
+      console.log('API response data:', data);
+      
+      console.log(`Setting file state with file: ${data.file.original_filename}`);
       setFile({
         ...data.file,
         owner: data.owner,
         shares: data.shares
       });
+      console.log('File state updated successfully');
     } catch (error) {
+      console.error('Error in fetchFileDetails:', error);
       setError('Error loading file details');
-      console.error(error);
+      console.log(`Setting error state: ${error.message}`);
     } finally {
+      console.log('Setting loading state to false');
       setLoading(false);
     }
   };
   
   const handleUpdateFile = async (updateData) => {
+    console.log(`Starting file update for ID: ${id}`);
+    console.log('Update data:', updateData);
+    
     try {
+      console.log(`Making PATCH request to: /api/files/${id}`);
       const response = await fetch(`/api/files/${id}`, {
         method: 'PATCH',
         headers: {
@@ -54,24 +81,32 @@ export default function FileDetails() {
         body: JSON.stringify(updateData)
       });
       
+      console.log(`API response received with status: ${response.status}`);
+      
       if (!response.ok) {
+        console.error(`API error: ${response.status} - ${response.statusText}`);
         const data = await response.json();
+        console.error('Error response:', data);
         throw new Error(data.message || 'Failed to update file');
       }
       
-      // Refresh file details
+      console.log('File updated successfully, refreshing file details');
       fetchFileDetails();
       
       return true;
     } catch (error) {
+      console.error('Error in handleUpdateFile:', error);
       setError(error.message);
-      console.error('Update file error:', error);
       throw error;
     }
   };
   
   const handleShareFile = async (shareData) => {
+    console.log(`Starting file share for ID: ${id}`);
+    console.log('Share data:', shareData);
+    
     try {
+      console.log('Making POST request to: /api/files/share');
       const response = await fetch('/api/files/share', {
         method: 'POST',
         headers: {
@@ -84,24 +119,31 @@ export default function FileDetails() {
         })
       });
       
+      console.log(`API response received with status: ${response.status}`);
+      
       if (!response.ok) {
+        console.error(`API error: ${response.status} - ${response.statusText}`);
         const data = await response.json();
+        console.error('Error response:', data);
         throw new Error(data.message || 'Failed to share file');
       }
       
-      // Refresh file details
+      console.log('File shared successfully, refreshing file details');
       fetchFileDetails();
       
       return true;
     } catch (error) {
+      console.error('Error in handleShareFile:', error);
       setError(error.message);
-      console.error('Share file error:', error);
       throw error;
     }
   };
   
   const handleRemoveShare = async (userId) => {
+    console.log(`Starting share removal for file ID: ${id} and user ID: ${userId}`);
+    
     try {
+      console.log('Making DELETE request to: /api/files/share');
       const response = await fetch('/api/files/share', {
         method: 'DELETE',
         headers: {
@@ -113,44 +155,61 @@ export default function FileDetails() {
         })
       });
       
+      console.log(`API response received with status: ${response.status}`);
+      
       if (!response.ok) {
+        console.error(`API error: ${response.status} - ${response.statusText}`);
         const data = await response.json();
+        console.error('Error response:', data);
         throw new Error(data.message || 'Failed to remove share');
       }
       
-      // Refresh file details
+      console.log('Share removed successfully, refreshing file details');
       fetchFileDetails();
       
       return true;
     } catch (error) {
+      console.error('Error in handleRemoveShare:', error);
       setError(error.message);
-      console.error('Remove share error:', error);
       throw error;
     }
   };
   
   const handleDeleteFile = async () => {
+    console.log(`Confirming file deletion for ID: ${id}`);
+    
     if (window.confirm('Are you sure you want to delete this file? This cannot be undone.')) {
+      console.log('File deletion confirmed by user');
+      
       try {
+        console.log(`Making DELETE request to: /api/files/${id}`);
         const response = await fetch(`/api/files/${id}`, {
           method: 'DELETE'
         });
         
+        console.log(`API response received with status: ${response.status}`);
+        
         if (!response.ok) {
+          console.error(`API error: ${response.status} - ${response.statusText}`);
           const data = await response.json();
+          console.error('Error response:', data);
           throw new Error(data.message || 'Failed to delete file');
         }
         
-        // Redirect to files page
+        console.log('File deleted successfully, redirecting to files page');
         router.push('/files');
+        console.log('Navigation to /files initiated');
       } catch (error) {
+        console.error('Error in handleDeleteFile:', error);
         setError(error.message);
-        console.error('Delete file error:', error);
       }
+    } else {
+      console.log('File deletion cancelled by user');
     }
   };
   
   const formatFileSize = (bytes) => {
+    console.log(`Formatting file size: ${bytes} bytes`);
     if (bytes < 1024) return bytes + ' B';
     else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
     else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
@@ -158,9 +217,12 @@ export default function FileDetails() {
   };
   
   const formatDate = (dateString) => {
+    console.log(`Formatting date: ${dateString}`);
     const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+  
+  console.log(`Rendering FileDetails component with states - loading: ${loading}, file: ${file ? 'present' : 'null'}, error: ${error ? error : 'none'}`);
   
   return (
     <div>
@@ -170,8 +232,13 @@ export default function FileDetails() {
       </Head>
       
       <div className="mb-6">
-        <Link href="/files">
-          <a className="text-blue-500 hover:text-blue-700 flex items-center">
+        <Link 
+          href="/files"
+        >
+          <a 
+            className="text-blue-500 hover:text-blue-700 flex items-center"
+            onClick={() => console.log('Back to Files navigation clicked')}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -207,11 +274,15 @@ export default function FileDetails() {
                       className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => console.log(`Download file clicked for ID: ${file.id}`)}
                     >
                       Download
                     </a>
                     <button
-                      onClick={handleDeleteFile}
+                      onClick={() => {
+                        console.log('Delete file button clicked');
+                        handleDeleteFile();
+                      }}
                       className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
                     >
                       Delete
@@ -251,7 +322,9 @@ export default function FileDetails() {
                           <button
                             className="ml-2 p-2 bg-gray-200 rounded hover:bg-gray-300"
                             onClick={() => {
+                              console.log('Copy public link button clicked');
                               navigator.clipboard.writeText(`${window.location.origin}/api/files/download?id=${file.id}`);
+                              console.log('Link copied to clipboard');
                               alert('Link copied to clipboard!');
                             }}
                           >
@@ -274,6 +347,8 @@ export default function FileDetails() {
                         src={`/api/files/download?id=${file.id}`}
                         alt={file.original_filename}
                         className="max-w-full max-h-96 object-contain border rounded"
+                        onLoad={() => console.log('Image preview loaded successfully')}
+                        onError={(e) => console.error('Error loading image preview:', e)}
                       />
                     </div>
                   ) : file.mime_type.startsWith('text/') || file.mime_type === 'application/json' ? (
@@ -296,6 +371,7 @@ export default function FileDetails() {
                         className="inline-block mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => console.log(`Download to view clicked for file ID: ${file.id}`)}
                       >
                         Download to view
                       </a>
@@ -337,9 +413,18 @@ DELETE /api/files/${file.id}`}
             <div className="md:col-span-1">
               <FileActions 
                 file={file}
-                onUpdateFile={handleUpdateFile}
-                onShareFile={handleShareFile}
-                onRemoveShare={handleRemoveShare}
+                onUpdateFile={(updateData) => {
+                  console.log('FileActions.onUpdateFile callback triggered with data:', updateData);
+                  return handleUpdateFile(updateData);
+                }}
+                onShareFile={(shareData) => {
+                  console.log('FileActions.onShareFile callback triggered with data:', shareData);
+                  return handleShareFile(shareData);
+                }}
+                onRemoveShare={(userId) => {
+                  console.log(`FileActions.onRemoveShare callback triggered for user ID: ${userId}`);
+                  return handleRemoveShare(userId);
+                }}
               />
             </div>
           </div>

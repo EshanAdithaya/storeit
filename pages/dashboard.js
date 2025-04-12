@@ -13,29 +13,54 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const response = await fetch('/api/dashboard');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data');
-        }
-        
-        const data = await response.json();
-        setStats(data);
-      } catch (error) {
-        setError('Failed to load dashboard data');
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  console.log('Dashboard component rendered');
 
+  useEffect(() => {
+    console.log('Dashboard useEffect triggered, fetching dashboard data');
     fetchDashboardData();
+
+    return () => {
+      console.log('Dashboard component unmounting');
+    };
   }, []);
 
+  const fetchDashboardData = async () => {
+    console.log('Starting fetchDashboardData, setting loading to true');
+    setLoading(true);
+    
+    try {
+      console.log('Making API request to: /api/dashboard');
+      const response = await fetch('/api/dashboard');
+      
+      console.log(`API response received with status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`API error: ${response.status} - ${response.statusText}`);
+        throw new Error('Failed to fetch dashboard data');
+      }
+      
+      console.log('Parsing API response JSON');
+      const data = await response.json();
+      console.log('Dashboard data received:', data);
+      console.log(`Total files: ${data.totalFiles}`);
+      console.log(`Total storage: ${formatFileSize(data.totalStorage)}`);
+      console.log(`Recent files: ${data.recentFiles?.length || 0}`);
+      console.log(`Shared files: ${data.sharedFiles || 0}`);
+      
+      setStats(data);
+      console.log('Dashboard stats state updated');
+    } catch (error) {
+      console.error('Error in fetchDashboardData:', error);
+      setError('Failed to load dashboard data');
+      console.log(`Setting error state: ${error.message}`);
+    } finally {
+      console.log('Setting loading state to false');
+      setLoading(false);
+    }
+  };
+
   const formatFileSize = (bytes) => {
+    console.log(`Formatting file size: ${bytes} bytes`);
     if (bytes < 1024) return bytes + ' B';
     else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
     else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
@@ -43,9 +68,13 @@ export default function Dashboard() {
   };
 
   const formatDate = (dateString) => {
+    console.log(`Formatting date: ${dateString}`);
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
+  console.log(`Rendering Dashboard component with states - loading: ${loading}, error: ${error ? error : 'none'}`);
+  console.log(`Dashboard stats: ${stats.totalFiles} files, ${formatFileSize(stats.totalStorage)} storage`);
 
   return (
     <div>
@@ -57,7 +86,10 @@ export default function Dashboard() {
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <Link href="/files">
-          <a className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          <a 
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onClick={() => console.log('Navigate to /files clicked')}
+          >
             Manage Files
           </a>
         </Link>
@@ -141,13 +173,19 @@ export default function Dashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <Link href={`/files/${file.id}`}>
-                            <a className="text-blue-600 hover:text-blue-900 mr-4">View</a>
+                            <a 
+                              className="text-blue-600 hover:text-blue-900 mr-4"
+                              onClick={() => console.log(`Navigate to file details clicked for ID: ${file.id}`)}
+                            >
+                              View
+                            </a>
                           </Link>
                           <a 
                             href={`/api/files/download?id=${file.id}`} 
                             className="text-green-600 hover:text-green-900"
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => console.log(`Download file clicked for ID: ${file.id}`)}
                           >
                             Download
                           </a>
@@ -168,7 +206,10 @@ export default function Dashboard() {
               </p>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                 <Link href="/files">
-                  <a className="text-blue-500 hover:text-blue-700">
+                  <a 
+                    className="text-blue-500 hover:text-blue-700"
+                    onClick={() => console.log('Quick upload link clicked, navigating to /files')}
+                  >
                     <div className="flex flex-col items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -200,7 +241,11 @@ GET /api/files/download?id={file_id}`}
                 </pre>
               </div>
               <div className="mt-4">
-                <a href="/api-docs" className="text-blue-500 hover:text-blue-700">
+                <a 
+                  href="/api-docs" 
+                  className="text-blue-500 hover:text-blue-700"
+                  onClick={() => console.log('API documentation link clicked')}
+                >
                   View full API documentation →
                 </a>
               </div>
