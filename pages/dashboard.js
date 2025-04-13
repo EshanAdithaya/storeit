@@ -1,4 +1,4 @@
-// /pages/dashboard.js - Optimized Version
+// /pages/dashboard.js - Updated version
 
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
@@ -84,7 +84,7 @@ export default function Dashboard() {
     return () => {
       console.log('Dashboard component unmounting');
     };
-  }, [fetchDashboardData, router]);
+  }, [fetchDashboardData]);
 
   const formatFileSize = (bytes) => {
     if (!bytes && bytes !== 0) return '0 B';
@@ -102,7 +102,6 @@ export default function Dashboard() {
 
   console.log(`Rendering Dashboard component with states - loading: ${loading}, error: ${error ? error : 'none'}`);
   
-  // The rest of your JSX remains largely the same
   return (
     <div>
       <Head>

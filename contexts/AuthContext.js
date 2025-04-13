@@ -1,30 +1,61 @@
-// /contexts/AuthContext.js
+// /contexts/AuthContext.js - Updated version
 
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { getAuthToken, setAuthToken, removeAuthToken, isAuthenticated } from '../utils/auth';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
 
+  // Verify token only once on initial load
+  const verifyToken = useCallback(async (token) => {
+    try {
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token })
+      });
+      
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      return data.user;
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return null;
+    }
+  }, []);
+
+  // Check authentication on initial load
   useEffect(() => {
-    // Check authentication status on initial load
     const checkAuth = async () => {
-      const result = await isAuthenticated();
-      if (result && result.authenticated) {
-        setUser(result.user);
+      setLoading(true);
+      const token = localStorage.getItem('auth_token');
+      
+      if (token) {
+        const userData = await verifyToken(token);
+        if (userData) {
+          setUser(userData);
+        } else {
+          localStorage.removeItem('auth_token');
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
+      
       setLoading(false);
+      setAuthChecked(true);
     };
 
     checkAuth();
-  }, []);
+  }, [verifyToken]);
 
   const login = async (username, password) => {
     setLoading(true);
@@ -43,8 +74,9 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Login failed');
       }
 
-      setAuthToken(data.token);
+      localStorage.setItem('auth_token', data.token);
       setUser(data.user);
+      router.push('/dashboard');
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -54,46 +86,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    removeAuthToken();
+    localStorage.removeItem('auth_token');
     setUser(null);
     router.push('/login');
   };
 
-  const register = async (userData) => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
+  const getToken = useCallback(() => {
+    return localStorage.getItem('auth_token');
+  }, []);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add this to your component tree by wrapping your app with AuthProvider
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated: !!user,
         user,
         loading,
+        authChecked,
         login,
         logout,
-        register,
+        getToken
       }}
     >
       {children}
@@ -101,5 +112,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use the auth context
 export const useAuth = () => useContext(AuthContext);
