@@ -16,6 +16,7 @@ const LoginForm = () => {
   // Check for existing token on component mount
   useEffect(() => {
     console.log('LoginForm component mounted, checking for existing token');
+    let isMounted = true; // Track if component is mounted for async operations
     
     const checkExistingToken = async () => {
       try {
@@ -24,7 +25,7 @@ const LoginForm = () => {
         
         if (token) {
           console.log('Existing token found, verifying...');
-          setInitialLoading(true);
+          // Don't set initialLoading again since it's already true
           
           try {
             console.log('Making API request to: /api/auth/verify');
@@ -38,22 +39,38 @@ const LoginForm = () => {
             
             console.log(`API response received with status: ${response.status}`);
             
+            // Only proceed if component is still mounted
+            if (!isMounted) return;
+            
             if (response.ok) {
               console.log('Token is valid, redirecting to dashboard');
               router.push('/dashboard');
+              return; // Exit early to prevent setting initialLoading = false
             } else {
               console.log('Token is invalid, removing from localStorage');
               localStorage.removeItem('auth_token');
             }
           } catch (error) {
+            // Only proceed if component is still mounted
+            if (!isMounted) return;
+            
             console.error('Error verifying token:', error);
             console.log('Removing invalid token from localStorage');
             localStorage.removeItem('auth_token');
           }
         }
-      } finally {
-        console.log('Initial token check completed');
-        setInitialLoading(false);
+        
+        // Only proceed if component is still mounted
+        if (isMounted) {
+          console.log('Initial token check completed');
+          setInitialLoading(false);
+        }
+      } catch (error) {
+        // Only proceed if component is still mounted
+        if (isMounted) {
+          console.error('Unexpected error during token check:', error);
+          setInitialLoading(false);
+        }
       }
     };
     
@@ -77,6 +94,7 @@ const LoginForm = () => {
     router.events.on('routeChangeError', handleRouteChangeError);
     
     return () => {
+      isMounted = false; // Prevent state updates after unmount
       router.events.off('routeChangeStart', handleRouteChangeStart);
       router.events.off('routeChangeComplete', handleRouteChangeComplete);
       router.events.off('routeChangeError', handleRouteChangeError);
@@ -213,11 +231,11 @@ const LoginForm = () => {
                 'Login'
               )}
             </button>
-            <a
-              className="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800"
+            
+              < a className="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800"
               href="/register"
               onClick={() => console.log('Register link clicked, navigating to /register')}
-            >
+              >
               Register
             </a>
           </div>
