@@ -20,7 +20,7 @@ const RouteGuard = ({ children }) => {
     
     if (requiresAuth && !isAuthenticated) {
       // Redirect to login if trying to access a protected page without auth
-      router.push('/login');
+      router.push('/dashboard');
     } else if (!requiresAuth && isAuthenticated && 
               (router.pathname === '/login' || router.pathname === '/register')) {
       // Redirect to dashboard if authenticated user tries to access login/register
