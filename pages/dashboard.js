@@ -1,4 +1,4 @@
-// /pages/dashboard.js - Updated version
+// /pages/dashboard.js - Complete fixed version
 
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
@@ -14,77 +14,82 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [tokenVerified, setTokenVerified] = useState(false);
 
-  console.log('Dashboard component rendered');
-
-  // Using useCallback to memoize the fetchDashboardData function
-  const fetchDashboardData = useCallback(async () => {
-    console.log('Starting fetchDashboardData, setting loading to true');
-    setLoading(true);
-    
-    try {
-      // Get token from localStorage
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        console.error('No authentication token found');
-        router.push('/login');
-        return;
-      }
-
-      console.log('Making API request to: /api/dashboard with auth token');
-      const response = await fetch('/api/dashboard', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
+  // Verify token once on component mount
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        
+        if (!token) {
+          console.log('No authentication token found');
+          router.push('/login');
+          return;
         }
-      });
-      
-      console.log(`API response received with status: ${response.status}`);
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.error('Authentication failed, redirecting to login');
+
+        // Verify token once
+        const verifyResponse = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+
+        if (!verifyResponse.ok) {
+          console.log('Token verification failed, redirecting to login');
           localStorage.removeItem('auth_token');
           router.push('/login');
           return;
         }
-        throw new Error('Failed to fetch dashboard data');
+
+        setTokenVerified(true);
+      } catch (error) {
+        console.error('Auth verification error:', error);
+        router.push('/login');
       }
-      
-      console.log('Parsing API response JSON');
-      const data = await response.json();
-      console.log('Dashboard data received:', data);
-      
-      setStats(data);
-      console.log('Dashboard stats state updated');
-    } catch (error) {
-      console.error('Error in fetchDashboardData:', error);
-      setError('Failed to load dashboard data. Please try refreshing the page.');
-    } finally {
-      console.log('Setting loading state to false');
-      setLoading(false);
-    }
+    };
+
+    verifyAuth();
   }, [router]);
 
+  // Fetch dashboard data only after token is verified
   useEffect(() => {
-    console.log('Dashboard useEffect triggered');
+    if (!tokenVerified) return;
     
-    // Check if we have a token before trying to fetch data
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      console.log('No token found in Dashboard, redirecting to login');
-      router.push('/login');
-      return;
-    }
-    
-    // If we have a token, fetch the dashboard data
-    fetchDashboardData();
-
-    return () => {
-      console.log('Dashboard component unmounting');
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      
+      try {
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch('/api/dashboard', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            router.push('/login');
+            return;
+          }
+          throw new Error('Failed to fetch dashboard data');
+        }
+        
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setError('Failed to load dashboard data. Please try refreshing the page.');
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [fetchDashboardData]);
+    
+    fetchDashboardData();
+  }, [tokenVerified, router]);
 
   const formatFileSize = (bytes) => {
     if (!bytes && bytes !== 0) return '0 B';
@@ -100,8 +105,7 @@ export default function Dashboard() {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  console.log(`Rendering Dashboard component with states - loading: ${loading}, error: ${error ? error : 'none'}`);
-  
+  // Rest of your dashboard component JSX (unchanged)
   return (
     <div>
       <Head>
@@ -219,7 +223,7 @@ export default function Dashboard() {
             )}
           </div>
           
-          {/* Lower sections */}
+          {/* Lower sections remain the same */}
           <div className="grid md:grid-cols-2 gap-8">
             {/* Quick upload section */}
             <div className="bg-white rounded-lg shadow-md p-6">
