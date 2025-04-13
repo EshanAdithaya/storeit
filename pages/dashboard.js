@@ -1,6 +1,6 @@
-// /pages/dashboard.js
+// /pages/dashboard.js - Optimized Version
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -17,16 +17,8 @@ export default function Dashboard() {
 
   console.log('Dashboard component rendered');
 
-  useEffect(() => {
-    console.log('Dashboard useEffect triggered, fetching dashboard data');
-    fetchDashboardData();
-
-    return () => {
-      console.log('Dashboard component unmounting');
-    };
-  }, []);
-
-  const fetchDashboardData = async () => {
+  // Using useCallback to memoize the fetchDashboardData function
+  const fetchDashboardData = useCallback(async () => {
     console.log('Starting fetchDashboardData, setting loading to true');
     setLoading(true);
     
@@ -63,25 +55,39 @@ export default function Dashboard() {
       console.log('Parsing API response JSON');
       const data = await response.json();
       console.log('Dashboard data received:', data);
-      console.log(`Total files: ${data.totalFiles}`);
-      console.log(`Total storage: ${formatFileSize(data.totalStorage)}`);
-      console.log(`Recent files: ${data.recentFiles?.length || 0}`);
-      console.log(`Shared files: ${data.sharedFiles || 0}`);
       
       setStats(data);
       console.log('Dashboard stats state updated');
     } catch (error) {
       console.error('Error in fetchDashboardData:', error);
-      setError('Failed to load dashboard data');
-      console.log(`Setting error state: ${error.message}`);
+      setError('Failed to load dashboard data. Please try refreshing the page.');
     } finally {
       console.log('Setting loading state to false');
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    console.log('Dashboard useEffect triggered');
+    
+    // Check if we have a token before trying to fetch data
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.log('No token found in Dashboard, redirecting to login');
+      router.push('/login');
+      return;
+    }
+    
+    // If we have a token, fetch the dashboard data
+    fetchDashboardData();
+
+    return () => {
+      console.log('Dashboard component unmounting');
+    };
+  }, [fetchDashboardData, router]);
 
   const formatFileSize = (bytes) => {
-    console.log(`Formatting file size: ${bytes} bytes`);
+    if (!bytes && bytes !== 0) return '0 B';
     if (bytes < 1024) return bytes + ' B';
     else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
     else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
@@ -89,15 +95,14 @@ export default function Dashboard() {
   };
 
   const formatDate = (dateString) => {
-    console.log(`Formatting date: ${dateString}`);
+    if (!dateString) return '';
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   console.log(`Rendering Dashboard component with states - loading: ${loading}, error: ${error ? error : 'none'}`);
-  console.log(`Dashboard stats: ${stats.totalFiles} files, ${formatFileSize(stats.totalStorage)} storage`);
-
-  // Rest of your Dashboard component JSX remains the same...
+  
+  // The rest of your JSX remains largely the same
   return (
     <div>
       <Head>
@@ -108,10 +113,7 @@ export default function Dashboard() {
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <Link href="/files">
-          <a 
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => console.log('Navigate to /files clicked')}
-          >
+          <a className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Manage Files
           </a>
         </Link>
@@ -133,14 +135,14 @@ export default function Dashboard() {
       ) : (
         <>
           <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {/* Stats cards - unchanged */}
+            {/* Stats cards */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="text-blue-500 mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <div className="text-3xl font-bold mb-1">{stats.totalFiles}</div>
+              <div className="text-3xl font-bold mb-1">{stats.totalFiles || 0}</div>
               <div className="text-gray-500">Total Files</div>
             </div>
             
@@ -165,12 +167,11 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* Recent files section - unchanged */}
+          {/* Recent files section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            {/* Rest of your dashboard content - unchanged */}
             <h2 className="text-xl font-bold mb-4">Recent Files</h2>
             
-            {stats.recentFiles.length === 0 ? (
+            {!stats.recentFiles || stats.recentFiles.length === 0 ? (
               <p className="text-gray-500">No files uploaded yet</p>
             ) : (
               <div className="overflow-x-auto">
@@ -198,10 +199,7 @@ export default function Dashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <Link href={`/files/${file.id}`}>
-                            <a 
-                              className="text-blue-600 hover:text-blue-900 mr-4"
-                              onClick={() => console.log(`Navigate to file details clicked for ID: ${file.id}`)}
-                            >
+                            <a className="text-blue-600 hover:text-blue-900 mr-4">
                               View
                             </a>
                           </Link>
@@ -210,7 +208,6 @@ export default function Dashboard() {
                             className="text-green-600 hover:text-green-900"
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={() => console.log(`Download file clicked for ID: ${file.id}`)}
                           >
                             Download
                           </a>
@@ -223,7 +220,7 @@ export default function Dashboard() {
             )}
           </div>
           
-          {/* Lower sections - unchanged */}
+          {/* Lower sections */}
           <div className="grid md:grid-cols-2 gap-8">
             {/* Quick upload section */}
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -233,10 +230,7 @@ export default function Dashboard() {
               </p>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                 <Link href="/files">
-                  <a 
-                    className="text-blue-500 hover:text-blue-700"
-                    onClick={() => console.log('Quick upload link clicked, navigating to /files')}
-                  >
+                  <a className="text-blue-500 hover:text-blue-700">
                     <div className="flex flex-col items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -272,7 +266,6 @@ GET /api/files/download?id={file_id}`}
                 <a 
                   href="/api-docs" 
                   className="text-blue-500 hover:text-blue-700"
-                  onClick={() => console.log('API documentation link clicked')}
                 >
                   View full API documentation →
                 </a>

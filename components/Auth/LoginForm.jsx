@@ -1,4 +1,4 @@
-// /components/Auth/LoginForm.jsx
+// Updated authentication flow for LoginForm.jsx
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -16,147 +16,81 @@ const LoginForm = () => {
   // Check for existing token on component mount
   useEffect(() => {
     console.log('LoginForm component mounted, checking for existing token');
-    let isMounted = true; // Track if component is mounted for async operations
     
-    const checkExistingToken = async () => {
+    // Direct navigation to dashboard if token exists and is valid
+    const directToDashboard = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        console.log(`Token in localStorage: ${token ? 'Present' : 'Not found'}`);
         
-        if (token) {
-          console.log('Existing token found, verifying...');
-          // Don't set initialLoading again since it's already true
-          
-          try {
-            console.log('Making API request to: /api/auth/verify');
-            const response = await fetch('/api/auth/verify', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ token })
-            });
-            
-            console.log(`API response received with status: ${response.status}`);
-            
-            // Only proceed if component is still mounted
-            if (!isMounted) return;
-            
-            if (response.ok) {
-              console.log('Token is valid, redirecting to dashboard');
-              router.push('/dashboard');
-              return; // Exit early to prevent setting initialLoading = false
-            } else {
-              console.log('Token is invalid, removing from localStorage');
-              localStorage.removeItem('auth_token');
-            }
-          } catch (error) {
-            // Only proceed if component is still mounted
-            if (!isMounted) return;
-            
-            console.error('Error verifying token:', error);
-            console.log('Removing invalid token from localStorage');
-            localStorage.removeItem('auth_token');
-          }
+        if (!token) {
+          setInitialLoading(false);
+          return;
         }
         
-        // Only proceed if component is still mounted
-        if (isMounted) {
-          console.log('Initial token check completed');
+        // Send one verification request only
+        const response = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ token })
+        });
+        
+        if (response.ok) {
+          // If token is valid, redirect to dashboard immediately
+          router.push('/dashboard');
+          // Don't set initialLoading to false - let the component redirect
+        } else {
+          // If token is invalid, clear it
+          localStorage.removeItem('auth_token');
           setInitialLoading(false);
         }
       } catch (error) {
-        // Only proceed if component is still mounted
-        if (isMounted) {
-          console.error('Unexpected error during token check:', error);
-          setInitialLoading(false);
-        }
+        console.error('Token verification error:', error);
+        localStorage.removeItem('auth_token');
+        setInitialLoading(false);
       }
     };
     
-    checkExistingToken();
-    
-    // Log router events
-    const handleRouteChangeStart = (url) => {
-      console.log(`Navigation starting to: ${url}`);
-    };
-    
-    const handleRouteChangeComplete = (url) => {
-      console.log(`Navigation completed to: ${url}`);
-    };
-    
-    const handleRouteChangeError = (err, url) => {
-      console.error(`Navigation to ${url} failed:`, err);
-    };
-    
-    router.events.on('routeChangeStart', handleRouteChangeStart);
-    router.events.on('routeChangeComplete', handleRouteChangeComplete);
-    router.events.on('routeChangeError', handleRouteChangeError);
+    directToDashboard();
     
     return () => {
-      isMounted = false; // Prevent state updates after unmount
-      router.events.off('routeChangeStart', handleRouteChangeStart);
-      router.events.off('routeChangeComplete', handleRouteChangeComplete);
-      router.events.off('routeChangeError', handleRouteChangeError);
       console.log('LoginForm component unmounted');
     };
   }, [router]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    console.log(`Form field "${name}" changed to: ${value}`);
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login form submitted with data:', formData);
     setError('');
     setLoading(true);
-    console.log('Loading state set to true');
 
     try {
-      console.log('Sending login request to API...');
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(formData)
       });
 
-      console.log(`API response received with status: ${response.status}`);
       const data = await response.json();
-      console.log('API response data parsed');
 
       if (!response.ok) {
-        console.error('Login failed with status:', response.status);
-        console.error('Error response:', data);
         throw new Error(data.message || 'Login failed');
       }
 
-      // Save token to localStorage
-      console.log('Saving authentication token to localStorage');
+      // Save token and redirect immediately
       localStorage.setItem('auth_token', data.token);
-      console.log('Token saved to localStorage');
-
-      console.log('Login successful, redirecting to dashboard...');
-      // Redirect to dashboard on successful login
       router.push('/dashboard');
     } catch (error) {
-      console.error('Login error:', error.message);
       setError(error.message);
     } finally {
-      console.log('Loading state set to false');
       setLoading(false);
     }
   };
 
-  console.log(`Rendering LoginForm component with states - loading: ${loading}, initialLoading: ${initialLoading}, error: ${error ? error : 'none'}`);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({...prev, [name]: value}));
+  };
 
+  // Rest of your component remains the same
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
@@ -188,8 +122,6 @@ const LoginForm = () => {
               value={formData.username}
               onChange={handleChange}
               required
-              onFocus={() => console.log('Username field focused')}
-              onBlur={() => console.log('Username field blurred')}
             />
           </div>
           
@@ -205,8 +137,6 @@ const LoginForm = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              onFocus={() => console.log('Password field focused')}
-              onBlur={() => console.log('Password field blurred')}
             />
           </div>
           
@@ -217,7 +147,6 @@ const LoginForm = () => {
               }`}
               type="submit"
               disabled={loading}
-              onClick={() => console.log('Login button clicked')}
             >
               {loading ? (
                 <span className="flex items-center">
@@ -234,8 +163,7 @@ const LoginForm = () => {
             
               < a className="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800"
               href="/register"
-              onClick={() => console.log('Register link clicked, navigating to /register')}
-              >
+            >
               Register
             </a>
           </div>
