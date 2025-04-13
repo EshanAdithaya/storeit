@@ -1,4 +1,4 @@
-// /pages/dashboard.js - Fixed version
+// /pages/dashboard.js
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
@@ -31,7 +31,7 @@ export default function Dashboard() {
     setLoading(true);
     
     try {
-      // Get token from localStorage - THIS IS CRITICAL FOR AUTHENTICATION
+      // Get token from localStorage
       const token = localStorage.getItem('auth_token');
       
       if (!token) {
@@ -41,10 +41,12 @@ export default function Dashboard() {
       }
 
       console.log('Making API request to: /api/dashboard with auth token');
+      console.log('Auth token (first 10 chars):', token.substring(0, 10) + '...');
+      
       const response = await fetch('/api/dashboard', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`  // ADDED THIS HEADER
+          'Authorization': `Bearer ${token}`
         }
       });
       
@@ -57,19 +59,41 @@ export default function Dashboard() {
           router.push('/login');
           return;
         }
-        throw new Error('Failed to fetch dashboard data');
+        
+        // Try to get error message from response
+        let errorText = '';
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || 'Unknown error';
+        } catch (e) {
+          errorText = await response.text();
+        }
+        
+        console.error(`API error: ${response.status}`, errorText);
+        throw new Error(`Failed to fetch dashboard data: ${errorText}`);
       }
       
-      console.log('Parsing API response JSON');
-      const data = await response.json();
-      console.log('Dashboard data received:', data);
+      // Get the response as text first for debugging
+      const responseText = await response.text();
+      console.log('Raw API response:', responseText);
       
+      // Parse the response text as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Dashboard data parsed successfully:', data);
+      } catch (parseError) {
+        console.error('Error parsing API response as JSON:', parseError);
+        throw new Error('Failed to parse dashboard data: Invalid JSON');
+      }
+      
+      // Set the data in state
       setStats(data);
       console.log('Dashboard stats state updated');
     } catch (error) {
       console.error('Error in fetchDashboardData:', error);
-      setError('Failed to load dashboard data');
-      console.log(`Setting error state: ${error.message}`);
+      console.error('Error stack:', error.stack);
+      setError(`Failed to load dashboard data: ${error.message}`);
     } finally {
       console.log('Setting loading state to false');
       setLoading(false);
@@ -77,7 +101,7 @@ export default function Dashboard() {
   };
 
   const formatFileSize = (bytes) => {
-    if (!bytes && bytes !== 0) return '0 B';  // Handle undefined/null
+    if (bytes === undefined || bytes === null) return '0 B';
     if (bytes < 1024) return bytes + ' B';
     else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
     else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
@@ -85,12 +109,18 @@ export default function Dashboard() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';  // Handle undefined/null
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    if (!dateString) return '';
+    try {
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      return new Date(dateString).toLocaleDateString(undefined, options);
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return '';
+    }
   };
 
   console.log(`Rendering Dashboard component with states - loading: ${loading}, error: ${error ? error : 'none'}`);
+  console.log('Current stats state:', stats);
 
   return (
     <div>
