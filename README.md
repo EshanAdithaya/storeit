@@ -2,7 +2,7 @@
 
 StoreIt is a secure, self-hosted file storage solution built with Next.js, allowing users to upload, manage, and share files with comprehensive access control and permissions.
 
-![StoreIt](https://via.placeholder.com/1200x600?text=StoreIt+File+Storage)
+![StoreIt](image.png)
 
 ## Features
 
